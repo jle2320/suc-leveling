@@ -1,0 +1,343 @@
+{% include 'sucs/tp_sucs_header.html' %}
+<div class="row">
+    <div class="col-sm-4" >
+        <div class="card">
+            <div class="card-body">
+                <div class="card-title">5 previous data</div>
+                <div class="table-responsive">
+                    <table class="table mb-0 text-nowrap varient-table align-middle fs-3" id="tableData">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-0 text-muted text-start">Level</th>
+                                <th scope="col" class="px-0 text-muted text-start">Points</th>
+                            </tr>
+                        </thead>
+
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-8" >
+        <div class="card">
+            <div class="card-body">
+                <canvas id="myLineChart" width="600" height="400"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-12" >
+        <div class="card">
+            <div class="card-body">
+                <div class="card-title">Recommendation</div>
+                
+                <div  id="recommendationDiv"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+$(document).ready(function () {
+
+
+
+
+
+
+    function setLineGraph(labels, data){
+        const ctx = document.getElementById('myLineChart').getContext('2d');
+        const myLineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+            label: 'SUC Level Perormance',
+            data: data,
+            fill: false,
+            tension: 0.1
+            }]
+        },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5,
+                        ticks: {
+                            precision: 0, 
+                            callback: function(value) {
+                                const romans = ["", "I", "II", "III", "IV", "V"];
+                                return romans[value] || value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+
+
+    function recommendations(indicatorNAME,indicatorPOINT, indicatorMAXPOINT, kraid, indicator){
+        const formsData = new FormData();
+        formsData.append('button', 'recommendations');
+        formsData.append('indicatorNAME', indicatorNAME);
+        formsData.append('indicatorPOINT', indicatorPOINT);
+        formsData.append('indicatorMAXPOINT', indicatorMAXPOINT);
+        $.ajax({
+            url: '/ajax_sucs_recommendations', 
+            method: 'POST',
+            data: formsData,
+            processData: false, 
+            contentType: false,
+            success: function(response) {
+                try {
+                    const data = JSON.parse(response); 
+                    console.log(data);
+                    
+                    if (data.status === 'success') {
+
+                        let cleanedText = data.recommendations.replace(/\*\*/g, '').replace(/\n/g, '<br>');
+                        
+                        $('#recommendationDiv .loadingd'+kraid).addClass('d-none');
+
+                        $('#recommendationDiv .recommended'+kraid).append(`
+                            <div class="alert alert-info fw-bold" >
+                                <div class="mb-1" >
+                                    Input: <i>${indicator} ${indicatorNAME}</i>
+                                </div>
+                                <div class="mb-1" >
+                                    <span class="rounded bg-warning ps-2 pe-2">Max Point: <i>${indicatorMAXPOINT}</i></span>
+                                    <span class="rounded bg-warning ps-2 pe-2">Point Allocation: <i>${indicatorPOINT}</i></span>
+                                </div>
+                                <hr>
+                                <div class="mb-2 ">
+                                    <p>Recommendation</p>
+                                    <p>${cleanedText}</p>
+                                </div>
+                            </div>
+                        `);
+                    } else if (data.status === 'no_data') {
+                        Swal.fire({
+                                        icon: 'error',
+                                        title: 'No Data',
+                                        text: 'Failed to get recommendations'
+                                    });
+                    } else if (data.status === 'invalid_request') {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Invalid request',
+                                        text: 'Please try again later.'
+                                    });
+                    } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Unexpected error',
+                                        text: 'Please try again later.'
+                                    });
+                    }
+                } catch (error) {
+                    console.log(error);
+                    Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid response',
+                                text: 'Please try again later.'
+                            });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server error',
+                    text: 'Please try again later',
+                });
+            }
+        });
+    }
+
+
+
+
+
+
+    getResults();
+                function getResults(){
+                    const formsData = new FormData();
+                    formsData.append('button', 'initializeData');
+                    $.ajax({
+                        url: '/ajax_sucs_intializeData', 
+                        method: 'POST',
+                        data: formsData,
+                        processData: false, 
+                        contentType: false,
+                        success: function(response) {
+                            try {
+                                const data = JSON.parse(response); 
+                                console.log(data);
+                                
+                                if (data.status === 'success') {
+
+
+
+                                    
+                                    let kraIndicator = 1;
+                                    $.each(data.merge_indicators, function(index, jcRow) {
+                                        
+                                        $('#recommendationDiv').append(`
+                                           <div class="card">
+                                                <div class="card-header">
+                                                    <h4 class="alert-heading">${jcRow.KRANAME}</h4>
+                                                    <span class='loadingd${index}' >please wait...</spa>
+                                                </div>
+                                                <div class="card-body recommended${index}"></div>
+                                            </div>
+                                        `);
+                                        
+                                        /// main indicators
+                                        let mainIndicator = 1;
+                                        $.each(jcRow.main_indicators, function(mainIndex, mainRow) {
+                                            let indicator = kraIndicator + '.' + mainIndicator;
+
+                                            if(mainRow.indicator_type == 'input'){
+                                                $('#recommendationDiv .loadingd'+index).removeClass('d-none');
+                                                recommendations(mainRow.indicator_name,mainRow.indicator_point, mainRow.indicator_maxpoint, index, indicator);
+                                            }
+                                            /// first sub indicators
+                                            let firstIndicator = 1;
+                                            $.each(mainRow.firstsub_indicators, function(firstIndex, firstRow) {
+                                                let indicator1 = kraIndicator + '.' + mainIndicator + '.' + firstIndicator;
+                                                
+                                                if(firstRow.indicator_type == 'input'){
+                                                    $('#recommendationDiv .loadingd'+index).removeClass('d-none');
+                                                    recommendations(firstRow.indicator_name,firstRow.indicator_point, firstRow.indicator_maxpoint, index, indicator1)
+                                                }
+                                                /// second sub indicators
+                                                let secondIndicator = 1;
+                                                $.each(firstRow.secondsub_indicators, function(secondIndex, secondRow) {
+                                                    let indicator2 = kraIndicator + '.' + mainIndicator + '.' + firstIndicator + '.' + secondIndicator;
+                                                    
+                                                    if(secondRow.indicator_type == 'input'){
+                                                        $('#recommendationDiv .loadingd'+index).removeClass('d-none');
+                                                        recommendations(secondRow.indicator_name,secondRow.indicator_point, secondRow.indicator_maxpoint, index, indicator2)
+                                                    }
+                                                    /// third sub indicators
+                                                    let thirdIndicator = 1;
+                                                    $.each(secondRow.thirdsub_indicators, function(thirdIndex, thirdRow) {
+                                                        let indicator3 = kraIndicator + '.' + mainIndicator + '.' + firstIndicator + '.' + secondIndicator + '.' + thirdIndicator;
+                                                        
+                                                        if(thirdRow.indicator_type == 'input'){
+                                                            $('#recommendationDiv .loadingd'+index).removeClass('d-none');
+                                                            recommendations(thirdRow.indicator_name,thirdRow.indicator_point, thirdRow.indicator_maxpoint, index, indicator3)
+                                                        }
+                                                        /// fourth sub indicators
+                                                        let fourthIndicator = 1;
+                                                        $.each(thirdRow.fourthsub_indicators, function(fourthIndex, fourthRow) {
+                                                            let indicator4 = kraIndicator + '.' + mainIndicator + '.' + firstIndicator + '.' + secondIndicator + '.' + thirdIndicator + '.' + fourthIndicator;
+                                                            
+                                                            if(fourthRow.indicator_type == 'input'){
+                                                                $('#recommendationDiv .loadingd'+index).removeClass('d-none');
+                                                                recommendations(fourthRow.indicator_name,fourthRow.indicator_point, fourthRow.indicator_maxpoint, index, indicator4)
+                                                            }
+                                                            fourthIndicator++;
+                                                        });
+                                                        thirdIndicator++;
+                                                    });
+                                                    secondIndicator++;
+                                                });
+                                                firstIndicator++;
+                                            });
+                                            
+                                            mainIndicator++;
+                                        });
+                                        kraIndicator++;
+                                    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                    let labelArray = ['Based'];
+                                    let dataArray = ['0'];
+                                    $.each(data.raw_data, function(index, row) {
+                                        labelArray.push(row.resultJC);
+                                        dataArray.push( 
+                                                (row.levelName=='Level I') ? 1:
+                                                (row.levelName=='Level II') ? 2: 
+                                                (row.levelName=='Level III') ? 3: 
+                                                (row.levelName=='Level IV') ? 4: 
+                                                (row.levelName=='Level V') ? 5: 'Undifined'
+                                        );
+                                        
+                                        $('#tableData tbody').append(`
+                                            <tr>
+                                                <td>${row.levelName}</td>
+                                                <td>${row.resultPoint}</td>
+                                            </tr>
+                                        `);
+                                    });
+                                    labelArray.push('Predicted Level');
+                                    labelArray.push('-');
+                                    dataArray.push( 
+                                                (data.prediction.predicted_level=='Level I') ? 1:
+                                                (data.prediction.predicted_level=='Level II') ? 2: 
+                                                (data.prediction.predicted_level=='Level III') ? 3: 
+                                                (data.prediction.predicted_level=='Level IV') ? 4: 
+                                                (data.prediction.predicted_level=='Level V') ? 5: 'Undifined'
+                                        );
+                                    setLineGraph(labelArray, dataArray);
+                                } else if (data.status === 'no_data') {
+                                    Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'No Data',
+                                                    text: 'Failed to predict'
+                                                });
+                                } else if (data.status === 'invalid_request') {
+                                                Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'Invalid request',
+                                                    text: 'Please try again later.'
+                                                });
+                                } else {
+                                                Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'Unexpected error',
+                                                    text: 'Please try again later.'
+                                                });
+                                }
+                            } catch (error) {
+                                console.log(error);
+                                Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid response',
+                                            text: 'Please try again later.'
+                                        });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Server error',
+                                text: 'Please try again later',
+                            });
+                        }
+                    });
+                }
+})
+</script>
+{% include 'sucs/tp_sucs_footer.html' %}			

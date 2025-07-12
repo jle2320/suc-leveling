@@ -1,0 +1,32 @@
+$(document).on('click', 'table .addTextPrimeIndicator', function (e) {
+            e.preventDefault();
+
+            // Get the closest table
+            var $table = $(this).closest('table');
+
+            // Count existing .primeIndicator rows in this table only
+            var nextPrimeNumber = $table.find('tbody tr.primeIndicator').length + 1;
+
+            var newRow = `
+                <tr class="primeIndicator">
+                    <td>
+                        <div class="form-group">
+                            <div class="dropdown">
+                                <a class="fas fa-plus" href="#" role="button" data-bs-toggle="dropdown"></a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item addInputSubIndicator1" href="#">Point Indicator</a></li>
+                                    <li><a class="dropdown-item addTextSubIndicator1" href="#">Text Indicator</a></li>
+                                </ul>
+                            </div>
+                            <label class="form-label small-label">${nextPrimeNumber}.</label>
+                            <input type="text" class="myInput" placeholder="New Indicator">
+                        </div>
+                    </td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            `;
+
+            // Append the new row to the tbody of the same table
+            $table.find('tbody').append(newRow);
+        });

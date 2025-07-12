@@ -1,0 +1,1005 @@
+{% include 'admin/tp_admin_header.html' %}
+<style>
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 0 10px; 
+    }
+
+    .form-group
+    {
+        position: relative;
+    }
+
+    .form-group input
+    {
+        height: 60px;
+        padding-top: 20px;
+        width:100%;
+        border: none;
+    }
+
+    .form-group label
+    {
+        position: absolute;
+        font-size:12px;
+        padding: 10 0px;
+    }
+
+    .form-group div
+    {
+        position: absolute;
+        font-size:12px;
+        padding: 2px 4px;
+        right:10px;
+        background-color: rgba(224, 230, 230, 0.115);
+    }
+  </style>
+
+<div class="page-breadcrumb">
+    <div class='d-flex justify-content-between align-items-center'>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="admin-dashboard">Admin</a></li>
+            <li class="breadcrumb-item"><a href="admin-instruments">Instruments</a></li>       
+            <li class="breadcrumb-item active">{{ dataJC }}</li>       
+        </ol>
+        <input type="hidden" id="dataID" value="{{ dataID }}">
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body" >
+
+                <div id="KRAtable" ></div>
+
+
+
+                
+
+                <div class="mt-3" >
+                    <button id='addKRA' class="btn btn-sm btn-primary" title="Add KRA">
+                        <span class="fas fa-plus"></span>
+                        KRA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+    $(document).ready(function() {
+
+        $('#addKRA').click(function (){
+            const formsData = new FormData();
+            formsData.append('button', 'add_instrument_kra');
+            formsData.append('instrument_id', $('#dataID').val());
+            $.ajax({
+                url: '/ajax_admin_add_instrument_kra', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to add KRA'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        })
+
+
+
+        $(document).on('click', 'table .deleteKRA', function (e) {
+            const formsData = new FormData();
+            formsData.append('button', 'delete_instrument_kra');
+            formsData.append('kraID', $(this).attr('data-id'));
+            $.ajax({
+                url: '/ajax_admin_delete_instrument_kra', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to delete KRA'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        })
+
+
+
+
+        getKRA();
+        function getKRA(){
+            const formsData = new FormData();
+            formsData.append('button', 'get_instrument_kra');
+            formsData.append('instrument_id', $('#dataID').val());
+            $.ajax({
+                url: '/ajax_admin_get_instrument_kra', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            $('#KRAtable').empty();
+                            $.each(data.raw_data, function(index, row) {
+
+                                let primeIndicatorTd = '';
+                                $.each(row.main_indicators, function(subIndex, subRow) {
+                                    let firstSubIndicatorTd = '';
+                                    $.each(subRow.firstsub_indicators, function(firstSubIndex, firstSubRow) {
+                                        let secondSubIndicatorTd = '';
+                                        $.each(firstSubRow.secondsub_indicators, function(secondSubIndex, secondSubRow) {
+                                            let thirdSubIndicatorTd = '';
+                                            $.each(secondSubRow.thirdsub_indicators, function(thirdSubIndex, thirdSubRow) {
+                                                let fourthSubIndicatorTd = '';
+                                                $.each(thirdSubRow.fourthsub_indicators, function(fourthSubIndex, fourthSubRow) {
+                                                    
+                                                    let fourthLabel = '<span class="bg-danger rounded-1 ps-1 pe-1 text-white" >input</span>';
+                                                    if(fourthSubRow.fourthsub_indicator_type == 'text'){
+                                                        fourthLabel = '<span class="bg-success rounded-1 ps-1 pe-1 text-white" >text</span>';
+                                                    }
+                                                    fourthSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                            <td style="padding-left: 120px;">
+                                                                                <div class="form-group">
+                                                                                    <div class="dropdown">
+                                                                                        ${fourthLabel}
+                                                                                        <span class="fa fa-chevron-down" role="button" data-bs-toggle="dropdown" ></span>
+                                                                                        <ul class="dropdown-menu">
+                                                                                            <li><a data-id='${fourthSubRow.fourthsub_indicator_id}' class="dropdown-item deleteFourthSubIndicator text-danger" ><span class='fas fa-trash' ></span> Delete Indicator</a></li>
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                    <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}.${fourthSubIndex + 1}</label>
+                                                                                    <input type="text" data-id='${fourthSubRow.fourthsub_indicator_id}' class="fourth_indicator_name" placeholder="${fourthSubRow.fourthsub_indicator_name}" value="${fourthSubRow.fourthsub_indicator_name}" >
+                                                                                </div>    
+                                                                            </td>
+                                                                            <td style="padding-left: 120px;">
+                                                                                <div class="form-group">
+                                                                                    <label class="form-label small-label">Max Points</label>
+                                                                                    <input type="text" data-id='${fourthSubRow.fourthsub_indicator_id}' class="fourth_indicator_point" placeholder="${fourthSubRow.fourthsub_indicator_point}" value="${fourthSubRow.fourthsub_indicator_point}" >
+                                                                                </div>    
+                                                                            </td>
+                                                                        </tr>`;
+                                                });
+
+                                                
+                                                let thirdMenu = '';
+                                                let thirdLabel = '<span class="bg-danger rounded-1 ps-1 pe-1 text-white" >input</span>';
+                                                if(thirdSubRow.thirdsub_indicator_type == 'text'){
+                                                    thirdLabel = '<span class="bg-success rounded-1 ps-1 pe-1 text-white" >text</span>';
+                                                    thirdMenu    = `<li><a data-id='${thirdSubRow.thirdsub_indicator_id}' class="dropdown-item addInputFourthSubIndicator" ><span class='fas fa-plus' ></span> Point Indicator</a></li>
+                                                                    <li><a data-id='${thirdSubRow.thirdsub_indicator_id}' class="dropdown-item addTextFourthSubIndicator" ><span class='fas fa-plus' ></span> Text Indicator</a></li>`;
+                                                }
+                                                thirdSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                        <td style="padding-left: 90px;">
+                                                                            <div class="form-group">
+                                                                                <div class="dropdown">
+                                                                                    ${thirdLabel}
+                                                                                    <span class="fa fa-chevron-down" role="button" data-bs-toggle="dropdown" ></span>
+                                                                                    <ul class="dropdown-menu">
+                                                                                        ${thirdMenu}
+                                                                                        <li><a data-id='${thirdSubRow.thirdsub_indicator_id}' class="dropdown-item deleteThirdSubIndicator text-danger" ><span class='fas fa-trash' ></span> Delete Indicator</a></li>
+                                                                                    </ul>
+                                                                                </div>
+                                                                                <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}</label>
+                                                                                <input type="text" data-id='${thirdSubRow.thirdsub_indicator_id}' class="third_indicator_name" placeholder="${thirdSubRow.thirdsub_indicator_name}" value="${thirdSubRow.thirdsub_indicator_name}" >
+                                                                            </div>    
+                                                                        </td>
+                                                                        <td style="padding-left: 90px;">
+                                                                            <div class="form-group">
+                                                                                <label class="form-label small-label">Max Points</label>
+                                                                                <input type="text" data-id='${thirdSubRow.thirdsub_indicator_id}' class="third_indicator_point" placeholder="${thirdSubRow.thirdsub_indicator_point}" value="${thirdSubRow.thirdsub_indicator_point}" >
+                                                                            </div>    
+                                                                        </td>
+                                                                    </tr>
+                                                                    ${fourthSubIndicatorTd}`;
+                                            });
+
+
+                                            let secondMenu = '';
+                                            let secondLabel = '<span class="bg-danger rounded-1 ps-1 pe-1 text-white" >input</span>';
+                                            if(secondSubRow.secondsub_indicator_type == 'text'){
+                                                secondLabel = '<span class="bg-success rounded-1 ps-1 pe-1 text-white" >text</span>';
+                                                secondMenu    = `<li><a data-id='${secondSubRow.secondsub_indicator_id}' class="dropdown-item addInputThirdSubIndicator" ><span class='fas fa-plus' ></span> Point Indicator</a></li>
+                                                                <li><a data-id='${secondSubRow.secondsub_indicator_id}' class="dropdown-item addTextThirdSubIndicator" ><span class='fas fa-plus' ></span> Text Indicator</a></li>`;
+                                            }
+                                            secondSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                    <td style="padding-left: 60px;">
+                                                                        <div class="form-group">
+                                                                            <div class="dropdown">
+                                                                                ${secondLabel}
+                                                                                <span class="fa fa-chevron-down" role="button" data-bs-toggle="dropdown" ></span>
+                                                                                <ul class="dropdown-menu">
+                                                                                    ${secondMenu}
+                                                                                    <li><a data-id='${secondSubRow.secondsub_indicator_id}' class="dropdown-item deleteSecondSubIndicator text-danger" ><span class='fas fa-trash' ></span> Delete Indicator</a></li>
+                                                                                </ul>
+                                                                            </div>
+                                                                            <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}</label>
+                                                                            <input type="text" data-id='${secondSubRow.secondsub_indicator_id}' class="second_indicator_name" placeholder="${secondSubRow.secondsub_indicator_name}" value="${secondSubRow.secondsub_indicator_name}" >
+                                                                        </div>    
+                                                                    </td>
+                                                                    <td style="padding-left: 60px;">
+                                                                        <div class="form-group">
+                                                                            <label class="form-label small-label">Max Points</label>
+                                                                            <input type="text" data-id='${secondSubRow.secondsub_indicator_id}' class="second_indicator_point" placeholder="${secondSubRow.secondsub_indicator_point}" value="${secondSubRow.secondsub_indicator_point}" >
+                                                                        </div>    
+                                                                    </td>
+                                                                </tr>
+                                                                ${thirdSubIndicatorTd }`;
+                                        });
+                                        
+                                        
+                                        
+                                        
+                                        let firstMenu = '';
+                                        let firstLabel = '<span class="bg-danger rounded-1 ps-1 pe-1 text-white" >input</span>';
+                                        if(firstSubRow.firstsub_indicator_type == 'text'){
+                                            firstLabel = '<span class="bg-success rounded-1 ps-1 pe-1 text-white" >text</span>';
+                                            firstMenu    = `<li><a data-id='${firstSubRow.firstsub_indicator_id}' class="dropdown-item addInputSecondSubIndicator" ><span class='fas fa-plus' ></span> Point Indicator</a></li>
+                                                            <li><a data-id='${firstSubRow.firstsub_indicator_id}' class="dropdown-item addTextSecondSubIndicator" ><span class='fas fa-plus' ></span> Text Indicator</a></li>`;
+                                        }
+                                        firstSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                <td style="padding-left: 30px;">
+                                                                    <div class="form-group">
+                                                                        <div class="dropdown">
+                                                                            ${firstLabel}
+                                                                            <span class="fa fa-chevron-down" role="button" data-bs-toggle="dropdown" ></span>
+                                                                            <ul class="dropdown-menu">
+                                                                                ${firstMenu}
+                                                                                <li><a data-id='${firstSubRow.firstsub_indicator_id}' class="dropdown-item deleteFirstSubIndicator text-danger" ><span class='fas fa-trash' ></span> Delete Indicator</a></li>
+                                                                            </ul>
+                                                                        </div>
+                                                                        <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}</label>
+                                                                        <input type="text" data-id='${firstSubRow.firstsub_indicator_id}' class="first_indicator_name" placeholder="${firstSubRow.firstsub_indicator_name}" value="${firstSubRow.firstsub_indicator_name}" >
+                                                                    </div>    
+                                                                </td>
+                                                                <td style="padding-left: 30px;">
+                                                                    <div class="form-group">
+                                                                        <label class="form-label small-label">Max Points</label>
+                                                                        <input type="text" data-id='${firstSubRow.firstsub_indicator_id}' class="first_indicator_point" placeholder="${firstSubRow.firstsub_indicator_point}" value="${firstSubRow.firstsub_indicator_point}" >
+                                                                    </div>    
+                                                                </td>
+                                                            </tr>
+                                                        ${secondSubIndicatorTd}`;
+                                    });
+
+
+
+                                    let mainMenu = '';
+                                    let mainLabel = '<span class="bg-danger rounded-1 ps-1 pe-1 text-white" >input</span>';
+                                    if(subRow.main_indicator_type == 'text'){
+                                        mainLabel = '<span class="bg-success rounded-1 ps-1 pe-1 text-white" >text</span>';
+                                        mainMenu    = `<li><a data-id='${subRow.main_indicator_id}' class="dropdown-item addInputFirstSubIndicator" ><span class='fas fa-plus' ></span> Point Indicator</a></li>
+                                                        <li><a data-id='${subRow.main_indicator_id}' class="dropdown-item addTextFirstSubIndicator" ><span class='fas fa-plus' ></span> Text Indicator</a></li>`;
+                                    }
+
+                                    primeIndicatorTd += `<tr class="primeIndicator" >
+                                                            <td>
+                                                                <div class="form-group">
+                                                                    <div class="dropdown">
+                                                                        ${mainLabel}
+                                                                        <span class="fa fa-chevron-down" role="button" data-bs-toggle="dropdown" ></span>
+                                                                        <ul class="dropdown-menu">
+                                                                            ${mainMenu} 
+                                                                            <li><a data-id='${subRow.main_indicator_id}' class="dropdown-item deletePrimeIndicator text-danger" ><span class='fas fa-trash' ></span> Delete Indicator</a></li>
+                                                                        </ul>
+                                                                    </div>
+                                                                    <label class="form-label small-label">${index + 1}.${subIndex + 1}</label>
+                                                                    <input type="text" data-id='${subRow.main_indicator_id}' class="main_indicator_name" placeholder="${subRow.main_indicator_name}" value="${subRow.main_indicator_name}" >
+                                                                </div>    
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group">
+                                                                    <label class="form-label small-label">Max Points</label>
+                                                                    <input type="text" data-id='${subRow.main_indicator_id}' class="main_indicator_point" placeholder="${subRow.main_indicator_point}" value="${subRow.main_indicator_point}" >
+                                                                </div>    
+                                                            </td>
+                                                        </tr>
+                                                        ${firstSubIndicatorTd}`;
+                                });
+
+                                $('#KRAtable').append(`
+                                        <table class="w-100 mb-3" border="1" style="border-collapse: collapse; border: 1px solid #ddd;">
+                                           <thead>
+                                                <tr>
+                                                    <th scope="col" class="text-start" style='width:auto;' >
+                                                        <div class="form-group">
+                                                            <div class="dropdown">
+                                                                <span class="fa fa-chevron-down" role="button" data-bs-toggle="dropdown" ></span>
+                                                                <ul class="dropdown-menu">
+                                                                    <li><a data-id="${row.kra_id}" class="dropdown-item addInputPrimeIndicator" ><span class='fas fa-plus' ></span> Point Indicator</a></li>
+                                                                    <li><a data-id="${row.kra_id}"class="dropdown-item addTextPrimeIndicator" ><span class='fas fa-plus' ></span> Text Indicator</a></li>
+                                                                    <li><a data-id='${row.kra_id}' class="dropdown-item deleteKRA text-danger" ><span class='fas fa-trash' ></span> Delete KRA</a></li>
+                                                                </ul>
+                                                            </div>
+                                                            Indicator
+                                                        </div>
+                                                    </th>
+                                                    <th scope="col" class="text-start" style='width:200px;' >Max Points</th>
+                                                </tr>
+
+                                                <tr>
+                                                    <th scope="col" class="text-start">
+                                                        <div class="form-group">
+                                                            <label class="form-label small-label">KRA ${index + 1}:</label>
+                                                            <input type="text" data-id='${row.kra_id}' class="kra_name" placeholder="${row.kra_name}" value="${row.kra_name}" >
+                                                        </div>
+                                                    </th>
+                                                    <th>
+                                                        <div class="form-group">
+                                                            <label class="form-label small-label">Max Points</label>
+                                                            <input type="text" data-id='${row.kra_id}' class="kra_point" placeholder="${row.kra_point}" value="${row.kra_point}" >
+                                                        </div> 
+                                                    </th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>${primeIndicatorTd}</tbody>
+                                        </table>
+                                `);
+                            });
+                        } else if (data.status === 'no_data') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'No Data',
+                                            text: 'No KRA created'
+                                        });
+                            $('#KRAtable').empty();
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+        
+
+        $(document).on('change', 'table .kra_name', function (e) {
+            const kraID = $(this).attr('data-id');
+            const kraName = $(this).val();
+
+            const formsData = new FormData();
+            formsData.append('button', 'update_kra_name');
+            formsData.append('kraID', kraID);
+            formsData.append('kraName', kraName);
+            $.ajax({
+                url: '/ajax_admin_update_kra_name', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to update KRA name'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        });
+
+
+
+        $(document).on('change', 'table .kra_point', function (e) {
+            const kraID = $(this).attr('data-id');
+            const kraPoint = $(this).val();
+
+            const formsData = new FormData();
+            formsData.append('button', 'update_kra_point');
+            formsData.append('kraID', kraID);
+            formsData.append('kraPoint', kraPoint);
+            $.ajax({
+                url: '/ajax_admin_update_kra_point', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to update KRA point'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        });
+
+
+
+
+
+
+
+
+
+
+        $(document).on('change', 'table .main_indicator_name', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorName = $(this).val();
+            updateIndicatorName(indicatorID, indicatorName,'update_prime_indicator_name','/ajax_admin_update_prime_indicator_name');
+        });
+
+        $(document).on('change', 'table .first_indicator_name', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorName = $(this).val();
+            updateIndicatorName(indicatorID, indicatorName,'update_first_indicator_name','/ajax_admin_update_first_indicator_name');
+        });
+
+        $(document).on('change', 'table .second_indicator_name', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorName = $(this).val();
+            updateIndicatorName(indicatorID, indicatorName,'update_second_indicator_name','/ajax_admin_update_second_indicator_name');
+        });
+
+        $(document).on('change', 'table .third_indicator_name', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorName = $(this).val();
+            updateIndicatorName(indicatorID, indicatorName,'update_third_indicator_name','/ajax_admin_update_third_indicator_name');
+        });
+
+        $(document).on('change', 'table .fourth_indicator_name', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorName = $(this).val();
+            updateIndicatorName(indicatorID, indicatorName,'update_fourth_indicator_name','/ajax_admin_update_fourth_indicator_name');
+        });
+
+        function updateIndicatorName(indicatorID, indicatorName, button, urlss) {
+            const formsData = new FormData();
+            formsData.append('button', button);
+            formsData.append('indicatorID', indicatorID);
+            formsData.append('indicatorName', indicatorName);
+            $.ajax({
+                url: urlss, 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to update indicator name'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+        $(document).on('change', 'table .main_indicator_point', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorPoint = $(this).val();
+            updateIndicatorPoint(indicatorID, indicatorPoint,'update_prime_indicator_point','/ajax_admin_update_prime_indicator_point');
+        });
+
+        $(document).on('change', 'table .first_indicator_point', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorPoint = $(this).val();
+            updateIndicatorPoint(indicatorID, indicatorPoint,'update_first_indicator_point','/ajax_admin_update_first_indicator_point');
+        });
+
+        $(document).on('change', 'table .second_indicator_point', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorPoint = $(this).val();
+            updateIndicatorPoint(indicatorID, indicatorPoint,'update_second_indicator_point','/ajax_admin_update_second_indicator_point');
+        });
+
+        $(document).on('change', 'table .third_indicator_point', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorPoint = $(this).val();
+            updateIndicatorPoint(indicatorID, indicatorPoint,'update_third_indicator_point','/ajax_admin_update_third_indicator_point');
+        });
+
+        $(document).on('change', 'table .fourth_indicator_point', function (e) {
+            const indicatorID = $(this).attr('data-id');
+            const indicatorPoint = $(this).val();
+            updateIndicatorPoint(indicatorID, indicatorPoint,'update_fourth_indicator_point','/ajax_admin_update_fourth_indicator_point');
+        });
+
+        function updateIndicatorPoint(indicatorID, indicatorPoint, button, urlss) {
+            const formsData = new FormData();
+            formsData.append('button', button);
+            formsData.append('indicatorID', indicatorID);
+            formsData.append('indicatorPoint', indicatorPoint);
+            $.ajax({
+                url: urlss, 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to update indicator name'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+        $(document).on('click', 'table .addTextPrimeIndicator', function (e) {
+            addIndicator('text', $(this).attr('data-id'),'add_prime_indicator','/ajax_admin_add_prime_indicator');
+        });
+
+        $(document).on('click', 'table .addInputPrimeIndicator', function (e) {
+            addIndicator('input', $(this).attr('data-id'),'add_prime_indicator','/ajax_admin_add_prime_indicator');
+        });
+        
+        $(document).on('click', 'table .addTextFirstSubIndicator', function (e) {
+            addIndicator('text', $(this).attr('data-id'),'add_firstsub_indicator','/ajax_admin_add_firstsub_indicator');
+        });
+
+        $(document).on('click', 'table .addInputFirstSubIndicator', function (e) {
+           addIndicator('input', $(this).attr('data-id'),'add_firstsub_indicator','/ajax_admin_add_firstsub_indicator');
+        });
+        
+        $(document).on('click', 'table .addTextSecondSubIndicator', function (e) {
+            addIndicator('text', $(this).attr('data-id'),'add_secondsub_indicator','/ajax_admin_add_secondsub_indicator');
+        });
+
+        $(document).on('click', 'table .addInputSecondSubIndicator', function (e) {
+            addIndicator('input', $(this).attr('data-id'),'add_secondsub_indicator','/ajax_admin_add_secondsub_indicator');
+        });
+        
+        $(document).on('click', 'table .addTextThirdSubIndicator', function (e) {
+            addIndicator('text', $(this).attr('data-id'),'add_thirdsub_indicator','/ajax_admin_add_thirdsub_indicator');
+        });
+
+        $(document).on('click', 'table .addInputThirdSubIndicator', function (e) {
+            addIndicator('input', $(this).attr('data-id'),'add_thirdsub_indicator','/ajax_admin_add_thirdsub_indicator');
+        });
+
+        $(document).on('click', 'table .addTextFourthSubIndicator', function (e) {
+            addIndicator('text', $(this).attr('data-id'),'add_fourthsub_indicator','/ajax_admin_add_fourthsub_indicator');
+        });
+
+        $(document).on('click', 'table .addInputFourthSubIndicator', function (e) {
+            addIndicator('input', $(this).attr('data-id'),'add_fourthsub_indicator','/ajax_admin_add_fourthsub_indicator');
+        });
+
+        function addIndicator(textIndicator, indicatorID, button, urlss) {
+            const formsData = new FormData();
+            formsData.append('button', button);
+            formsData.append('textIndicator', textIndicator);
+            formsData.append('indicatorID', indicatorID);
+            $.ajax({
+                url: urlss, 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to add indicator'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+
+
+        
+        
+        
+        
+
+        $(document).on('click', 'table .deletePrimeIndicator', function (e) {
+            deleteIndicator($(this).attr('data-id'),'delete_prime_indicator','/ajax_admin_delete_prime_indicator');
+        });
+        
+        $(document).on('click', 'table .deleteFirstSubIndicator', function (e) {
+            deleteIndicator($(this).attr('data-id'),'delete_firstsub_indicator','/ajax_admin_delete_firstsub_indicator');
+        });
+
+        $(document).on('click', 'table .deleteSecondSubIndicator', function (e) {
+            deleteIndicator($(this).attr('data-id'),'delete_secondsub_indicator','/ajax_admin_delete_secondsub_indicator');
+        });
+
+        $(document).on('click', 'table .deleteThirdSubIndicator', function (e) {
+            deleteIndicator($(this).attr('data-id'),'delete_thirdsub_indicator','/ajax_admin_delete_thirdsub_indicator');
+        });
+
+        $(document).on('click', 'table .deleteFourthSubIndicator', function (e) {
+            deleteIndicator($(this).attr('data-id'),'delete_fourthsub_indicator','/ajax_admin_delete_fourthsub_indicator');
+        });
+
+        function deleteIndicator(indicatorID, button, urlss) {
+            const formsData = new FormData();
+            formsData.append('button', button);
+            formsData.append('indicatorID', indicatorID);
+            $.ajax({
+                url: urlss, 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            getKRA();
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'Failed to add indicator'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+        
+
+
+
+
+
+
+
+    });     
+</script>
+
+
+
+
+
+
+{% include 'admin/tp_admin_footer.html' %}			

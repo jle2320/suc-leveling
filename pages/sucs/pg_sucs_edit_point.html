@@ -1,0 +1,438 @@
+{% include 'sucs/tp_sucs_header.html' %}
+<style>
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      padding: 0 10px; 
+    }
+
+   
+
+    input
+    {
+        width:100%;
+        border: none;
+        padding: 5px;
+    }
+
+
+    input:not([readonly])
+    {
+        background-color: #f0f0f0;
+        color: #666;
+    }
+
+  </style>
+
+<div class="page-breadcrumb">
+    <div class='d-flex justify-content-between align-items-center'>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="admin-dashboard">Admin</a></li>
+            <li class="breadcrumb-item"><a href="admin-instruments">Instruments</a></li>       
+            <li class="breadcrumb-item active">{{ dataJC }}</li>       
+        </ol>
+        <input type="hidden" id="dataID" value="{{ dataID }}">
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body" >
+                <div id="KRAtable" ></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+    $(document).ready(function() {
+
+
+
+
+
+        $(document).on('change', '.fourthPoint', function () {
+            const belong = $(this).data('belong');
+            let total = 0;
+            $(`.fourthPoint[data-belong='${belong}']`).each(function () {
+                const val = parseFloat($(this).val());
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            });
+            $(`.thirdPoint[data-group='${belong}']`).val(total).trigger('change');
+
+            const pointValue = $(this).val();
+            savePoints('save_point_4', '/ajax_sucs_save_point_4', $(this).data('id'), pointValue);
+        });
+
+
+
+        $(document).on('change', '.thirdPoint', function () {
+            const belong = $(this).data('belong');
+            let total = 0;
+            $(`.thirdPoint[data-belong='${belong}']`).each(function () {
+                const val = parseFloat($(this).val());
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            });
+            $(`.secondPoint[data-group='${belong}']`).val(total).trigger('change');
+
+            const pointValue = $(this).val();
+            savePoints('save_point_3', '/ajax_sucs_save_point_3', $(this).data('id'), pointValue);
+        });
+
+
+
+        $(document).on('change', '.secondPoint', function () {
+            const belong = $(this).data('belong');
+            let total = 0;
+            $(`.secondPoint[data-belong='${belong}']`).each(function () {
+                const val = parseFloat($(this).val());
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            });
+            $(`.firstPoint[data-group='${belong}']`).val(total).trigger('change');
+
+            const pointValue = $(this).val();
+            savePoints('save_point_2', '/ajax_sucs_save_point_2', $(this).data('id'), pointValue);
+        });
+
+
+
+        $(document).on('change', '.firstPoint', function () {
+            const belong = $(this).data('belong');
+            let total = 0;
+            $(`.firstPoint[data-belong='${belong}']`).each(function () {
+                const val = parseFloat($(this).val());
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            });
+            $(`.mainPoint[data-group='${belong}']`).val(total).trigger('change');
+
+            const pointValue = $(this).val();
+            savePoints('save_point_1', '/ajax_sucs_save_point_1', $(this).data('id'), pointValue);
+        });
+
+
+
+        $(document).on('change', '.mainPoint', function () {
+            const belong = $(this).data('belong');
+            let total = 0;
+            $(`.mainPoint[data-belong='${belong}']`).each(function () {
+                const val = parseFloat($(this).val());
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            });
+            $(`.kraPoint[data-group='${belong}']`).val(total).trigger('change');
+
+            const pointValue = $(this).val();
+            savePoints('save_point_0', '/ajax_sucs_save_point_0', $(this).data('id'), pointValue);
+        });
+
+
+
+
+        
+
+        function savePoints(button, urlss, pointID, pointValue){
+            const formsData = new FormData();
+            formsData.append('button', button);
+            formsData.append('pointID', pointID);
+            formsData.append('pointValue', pointValue);
+            $.ajax({
+                url: urlss, 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            
+                        } else if (data.status === 'error') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed to save points',
+                                            text: 'Please try again later.'
+                                        });
+                            $('#KRAtable').empty();
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        getKRA();
+        function getKRA(){
+            const formsData = new FormData();
+            formsData.append('button', 'get_instrument_kra');
+            formsData.append('instrument_id', $('#dataID').val());
+            $.ajax({
+                url: '/ajax_suc_get_instrument_kra', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            $('#KRAtable').empty();
+                            $.each(data.raw_data, function(index, row) {
+
+                                let primeIndicatorTd = '';
+                                $.each(row.main_indicators, function(subIndex, subRow) {
+                                    let firstSubIndicatorTd = '';
+                                    $.each(subRow.firstsub_indicators, function(firstSubIndex, firstSubRow) {
+                                        let secondSubIndicatorTd = '';
+                                        $.each(firstSubRow.secondsub_indicators, function(secondSubIndex, secondSubRow) {
+                                            let thirdSubIndicatorTd = '';
+                                            $.each(secondSubRow.thirdsub_indicators, function(thirdSubIndex, thirdSubRow) {
+                                                let fourthSubIndicatorTd = '';
+                                                $.each(thirdSubRow.fourthsub_indicators, function(fourthSubIndex, fourthSubRow) {
+                                                    fourthSubIndicatorTd += `<tr class="fourthIndicator" >
+                                                                            <td style="padding-left: 120px;">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}.${fourthSubIndex + 1}: ${fourthSubRow.fourthsub_indicator_name}</td>
+                                                                            <td style="padding-left: 120px;">${fourthSubRow.fourthsub_indicator_point}</td>
+                                                                            <td><input 
+                                                                                type='' 
+                                                                                data-id='${fourthSubRow.fourthsub_point_id}'
+                                                                                value='${fourthSubRow.fourthsub_point_value}' 
+                                                                                data-belong='kra${index}-main${subIndex}-first${firstSubIndex}-second${secondSubIndex}-third${thirdSubIndex}' 
+                                                                                class='fourthPoint' 
+                                                                                max='${fourthSubRow.fourthsub_indicator_point}' 
+                                                                                placeholder='0' ${ (fourthSubRow.fourthsub_indicator_type == 'text') ? 'readonly' : '' } >
+                                                                            </td>
+                                                                        </tr>`;
+                                                });
+
+
+                                                thirdSubIndicatorTd += `<tr class="thirdIndicator" >
+                                                                        <td style="padding-left: 90px;">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}: ${thirdSubRow.thirdsub_indicator_name}</td>
+                                                                        <td style="padding-left: 90px;">${thirdSubRow.thirdsub_indicator_point}</td>
+                                                                        <td><input 
+                                                                            type='' 
+                                                                            data-id='${thirdSubRow.thirdsub_point_id}'
+                                                                            value='${thirdSubRow.thirdsub_point_value}'
+                                                                            data-belong='kra${index}-main${subIndex}-first${firstSubIndex}-second${secondSubIndex}' 
+                                                                            data-group='kra${index}-main${subIndex}-first${firstSubIndex}-second${secondSubIndex}-third${thirdSubIndex}' 
+                                                                            class='thirdPoint' 
+                                                                            max='${thirdSubRow.thirdsub_indicator_point}' 
+                                                                            placeholder='0' ${ (thirdSubRow.thirdsub_indicator_type == 'text') ? 'readonly' : '' } >
+                                                                        </td>
+                                                                    </tr>
+                                                                    ${fourthSubIndicatorTd}`;
+                                            });
+
+
+
+                                            secondSubIndicatorTd += `<tr class="secondIndicator" >
+                                                                    <td style="padding-left: 60px;">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}: ${secondSubRow.secondsub_indicator_name}</td>
+                                                                    <td style="padding-left: 60px;">${secondSubRow.secondsub_indicator_point}</td>
+                                                                    <td><input 
+                                                                        type=''
+                                                                        data-id='${secondSubRow.secondsub_point_id}'
+                                                                        value='${secondSubRow.secondsub_point_value}'
+                                                                        data-belong='kra${index}-main${subIndex}-first${firstSubIndex}' 
+                                                                        data-group='kra${index}-main${subIndex}-first${firstSubIndex}-second${secondSubIndex}' 
+                                                                        class='secondPoint' 
+                                                                        max='${secondSubRow.secondsub_indicator_point}' 
+                                                                        placeholder='0' ${ (secondSubRow.secondsub_indicator_type == 'text') ? 'readonly' : '' } >
+                                                                    </td>
+                                                                </tr>
+                                                                ${thirdSubIndicatorTd }`;
+                                        });
+                                        
+                                        
+                                        
+                                        
+                                        
+                                        firstSubIndicatorTd += `<tr class="firstIndicator" >
+                                                                <td style="padding-left: 30px;">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}: ${firstSubRow.firstsub_indicator_name}</td>
+                                                                <td style="padding-left: 30px;">${firstSubRow.firstsub_indicator_point}</td>
+                                                                <td><input 
+                                                                    type='' 
+                                                                    data-id='${firstSubRow.firstsub_point_id}'
+                                                                    value='${firstSubRow.firstsub_point_value}'
+                                                                    data-belong='kra${index}-main${subIndex}' 
+                                                                    data-group='kra${index}-main${subIndex}-first${firstSubIndex}' 
+                                                                    class='firstPoint' 
+                                                                    max='${firstSubRow.firstsub_indicator_point}' 
+                                                                    placeholder='0' ${ (firstSubRow.firstsub_indicator_type == 'text') ? 'readonly' : '' } >
+                                                                </td>
+                                                            </tr>
+                                                        ${secondSubIndicatorTd}`;
+                                    });
+
+
+
+
+                                    primeIndicatorTd += `<tr class="mainIndicator" >
+                                                            <td>${index + 1}.${subIndex + 1}: ${subRow.main_indicator_name}</td>
+                                                            <td>${subRow.main_indicator_point}</td>
+                                                            <td><input 
+                                                                type=''
+                                                                data-id='${subRow.main_point_id}'
+                                                                value='${subRow.main_point_value}'
+                                                                data-belong='kra${index}' 
+                                                                data-group='kra${index}-main${subIndex}'
+                                                                class='mainPoint' 
+                                                                max='${subRow.main_indicator_point}' 
+                                                                placeholder='0' ${ (subRow.main_indicator_type == 'text') ? 'readonly' : '' } >
+                                                            </td>
+                                                        </tr>
+                                                        ${firstSubIndicatorTd}`;
+                                });
+
+                                $('#KRAtable').append(`
+                                        <table class="w-100 mb-3" border="1" style="border-collapse: collapse; border: 1px solid #ddd;">
+                                           <thead>
+                                                <tr>
+                                                    <th style='width:auto;' >Indicators</th>
+                                                    <th style='width:150px;text-align:center;' >Max Points:</th>
+                                                    <th style='width:30px;text-align:center;' >Point Allocation</th>
+                                                </tr>
+                                                <tr>
+                                                    <th style='width:auto;' >KRA ${index + 1}: ${row.kra_name}</th>
+                                                    <th style='width:150px;text-align:center;' >${row.kra_point}</th>
+                                                    <th style='width:30px;text-align:center;' >
+                                                        <input 
+                                                            type=''
+                                                            data-group='kra${index}'
+                                                            class='kraPoint' 
+                                                            max='${row.kra_point}' 
+                                                            readonly >
+                                                    </th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>${primeIndicatorTd}</tbody>
+                                        </table>
+                                `);
+                            });
+                        } else if (data.status === 'no_data') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'No Data',
+                                            text: 'No KRA created'
+                                        });
+                            $('#KRAtable').empty();
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+        
+
+
+
+
+
+
+
+    });     
+</script>
+
+
+
+
+		
+{% include 'sucs/tp_sucs_footer.html' %}			

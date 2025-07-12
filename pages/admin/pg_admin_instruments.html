@@ -1,0 +1,841 @@
+{% include 'admin/tp_admin_header.html' %}
+<div class="page-breadcrumb">
+    <div class='d-flex justify-content-between align-items-center'>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="admin-dashboard">Admin</a></li>
+            <li class="breadcrumb-item active">Instruments</li>       
+        </ol>
+        
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <button class="btn btn-primary btn-sm" id="add_instrument_btn" >
+                    <span class="fas fa-plus"></span> Add Instrument
+                </button>
+            </li>
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table mb-0 text-nowrap varient-table align-middle fs-3" id="table_instruments">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-0 text-muted text-start">No.</th>
+                                <th scope="col" class="px-0 text-muted text-start">JC No.</th>
+                                <th scope="col" class="px-0 text-muted text-start">Subject</th>
+                                <th scope="col" class="px-0 text-muted text-start">Status</th>
+                                <th scope="col" class="px-0 text-muted text-start">Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+$(document).ready(function () {
+    
+    
+    $('#add_instrument_btn').on('click', function() {
+        Swal.fire({
+            title: 'New Instrument',
+            html:
+                `<div class='text-start' >
+                    <div class="mb-4">
+                        <label for="input_jc" class="form-label">Joint Circular No.</label>
+                        <input type="text" class="form-control" id="input_jc">
+                    </div>
+                    <div class="mb-4">
+                        <label for="input_subject" class="form-label">Subject</label>
+                        <textarea class="form-control" id="input_subject" rows="3"></textarea>
+                    </div>
+                </div>`,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonText: 'Create',
+            preConfirm: () => {
+                const input_jc = document.getElementById('input_jc').value;
+                const input_subject = document.getElementById('input_subject').value;
+
+                if (!input_jc || !input_subject) {
+                    Swal.showValidationMessage('All fields are required');
+                    return false;
+                }
+
+                return { input_jc, input_subject};
+            }
+        }).then((result) => {
+            const formsData = new FormData();
+            formsData.append('button', 'save_instrument');
+            formsData.append('input_jc', result.value.input_jc);
+            formsData.append('input_subject', result.value.input_subject);
+            $.ajax({
+                url: '/ajax_admin_save_instrument', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Instrument created successfully.'
+                            }).then(() => {
+                                loadInstruments(); 
+                            });
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed to create instrument',
+                                text: 'Please try again later.'
+                            });
+                        } else if (data.status === 'invalid_request') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid request',
+                                text: 'Please try again later.'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Unexpected error',
+                                text: 'Please try again later.'
+                            });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        });
+    });
+
+
+    
+    
+    $('#table_instruments tbody').on('click', '.viewInstrument', function() {
+        Swal.fire({
+			html: `<div id="KRAtable" ></div>`,
+			showCancelButton: false,
+			confirmButtonColor: "#3085d6",
+			cancelButtonColor: "#d33",
+			confirmButtonText: "Close",
+			didOpen: () => {
+				const modal = Swal.getPopup();
+				modal.style.width = '70%';     
+				modal.style.minHeight  = '600px';   
+				modal.style.maxWidth = '90vw';
+				
+                getKRA($(this).data('id'));
+                function getKRA(instrument_id){
+                    const formsData = new FormData();
+                    formsData.append('button', 'get_instrument_kra');
+                    formsData.append('instrument_id', instrument_id);
+                    $.ajax({
+                        url: '/ajax_admin_get_instrument_kra', 
+                        method: 'POST',
+                        data: formsData,
+                        processData: false, 
+                        contentType: false,
+                        success: function(response) {
+                            try {
+                                const data = JSON.parse(response); 
+                                console.log(data);
+                                
+                                if (data.status === 'success') {
+                                    $('#KRAtable').empty();
+                                    $.each(data.raw_data, function(index, row) {
+
+                                        let primeIndicatorTd = '';
+                                        $.each(row.main_indicators, function(subIndex, subRow) {
+                                            let firstSubIndicatorTd = '';
+                                            $.each(subRow.firstsub_indicators, function(firstSubIndex, firstSubRow) {
+                                                let secondSubIndicatorTd = '';
+                                                $.each(firstSubRow.secondsub_indicators, function(secondSubIndex, secondSubRow) {
+                                                    let thirdSubIndicatorTd = '';
+                                                    $.each(secondSubRow.thirdsub_indicators, function(thirdSubIndex, thirdSubRow) {
+                                                        let fourthSubIndicatorTd = '';
+                                                        $.each(thirdSubRow.fourthsub_indicators, function(fourthSubIndex, fourthSubRow) {
+                                                            fourthSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                                    <td style="padding-left: 120px;">
+                                                                                        <div class="form-group">
+                                                                                            <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}.${fourthSubIndex + 1}</label>
+                                                                                            <p>${fourthSubRow.fourthsub_indicator_name}</p>
+                                                                                        </div>    
+                                                                                    </td>
+                                                                                    <td style="padding-left: 120px;">
+                                                                                        <div class="form-group">
+                                                                                            <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}.${fourthSubIndex + 1}</label>
+                                                                                            <p>${fourthSubRow.fourthsub_indicator_point}</p>
+                                                                                        </div>    
+                                                                                    </td>
+                                                                                </tr>`;
+                                                        });
+
+
+                                                        thirdSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                                <td style="padding-left: 90px;">
+                                                                                    <div class="form-group">
+                                                                                        <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}</label>
+                                                                                        <p>${thirdSubRow.thirdsub_indicator_name}</p>
+                                                                                    </div>    
+                                                                                </td>
+                                                                                <td style="padding-left: 90px;">
+                                                                                    <div class="form-group">
+                                                                                        <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}.${thirdSubIndex + 1}</label>
+                                                                                        <p>${thirdSubRow.thirdsub_indicator_point}</p>
+                                                                                    </div>    
+                                                                                </td>
+                                                                            </tr>
+                                                                            ${fourthSubIndicatorTd}`;
+                                                    });
+
+
+
+                                                    secondSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                            <td style="padding-left: 60px;">
+                                                                                <div class="form-group">
+                                                                                    <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}</label>
+                                                                                    <p>${secondSubRow.secondsub_indicator_name}</p>
+                                                                                </div>    
+                                                                            </td>
+                                                                            <td style="padding-left: 60px;">
+                                                                                <div class="form-group">
+                                                                                    <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}.${secondSubIndex + 1}</label>
+                                                                                    <p>${secondSubRow.secondsub_indicator_point}</p>
+                                                                                </div>    
+                                                                            </td>
+                                                                        </tr>
+                                                                        ${thirdSubIndicatorTd }`;
+                                                });
+                                                
+                                                
+                                                
+                                                
+                                                
+                                                firstSubIndicatorTd += `<tr class="primeIndicator" >
+                                                                        <td style="padding-left: 30px;">
+                                                                            <div class="form-group">
+                                                                                <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}</label>
+                                                                                <p>${firstSubRow.firstsub_indicator_name}</p>
+                                                                            </div>    
+                                                                        </td>
+                                                                        <td style="padding-left: 30px;">
+                                                                            <div class="form-group">
+                                                                                <label class="form-label small-label">${index + 1}.${subIndex + 1}.${firstSubIndex + 1}</label>
+                                                                                <p>${firstSubRow.firstsub_indicator_point}</p>
+                                                                            </div>    
+                                                                        </td>
+                                                                    </tr>
+                                                                ${secondSubIndicatorTd}`;
+                                            });
+
+
+
+
+                                            primeIndicatorTd += `<tr class="primeIndicator" >
+                                                                    <td>
+                                                                        <div class="form-group">
+                                                                            <label class="form-label small-label">${index + 1}.${subIndex + 1}</label>
+                                                                            <p>${subRow.main_indicator_name}</p>
+                                                                        </div>    
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="form-group">
+                                                                            <label class="form-label small-label">${index + 1}.${subIndex + 1}</label>
+                                                                            <p>${subRow.main_indicator_point}</p>
+                                                                        </div>    
+                                                                    </td>
+                                                                </tr>
+                                                                ${firstSubIndicatorTd}`;
+                                        });
+
+                                        $('#KRAtable').append(`
+                                                <table class="w-100 mb-3" border="1" style="border-collapse: collapse; border: 1px solid #ddd;">
+                                                <thead>
+                                                        <tr>
+                                                            <th  style='width:80%;' scope="col" class="px-0 text-start">
+                                                                <div class="form-group">
+                                                                    <label class="form-label small-label">KRA ${index + 1}:</label>
+                                                                    <p>${row.kra_name}</p>
+                                                                </div>
+                                                            </th>
+                                                            <th style='width:20%;' scope="col" class="px-0 text-start">
+                                                                <div class="form-group">
+                                                                    <label class="form-label small-label">Max Points</label>
+                                                                    <p>${row.kra_point}</p>
+                                                                </div> 
+                                                            </th>
+                                                        </tr>
+
+                                                        <tr>
+                                                            <th scope="col" class="px-0 text-start">Indicator</th>
+                                                            <th scope="col" class="px-0 text-start">Max Points</th>
+                                                        </tr>
+                                                    </thead>
+
+                                                    <tbody>${primeIndicatorTd}</tbody>
+                                                </table>
+                                        `);
+                                    });
+
+
+
+
+                                    $('#KRAtable table, th, td').css({
+                                        'border': '1px solid black',
+                                        'border-collapse': 'collapse',
+                                        'text-align': 'left'
+                                    });
+
+                                    $('#KRAtable .form-group').css({
+                                        'position': 'relative'
+                                    });
+
+                                    $('#KRAtable .form-group p').css({
+                                        'min-height': '30px',
+                                        'padding-top': '20px',
+                                        'margin-bottom': '0px',
+                                        'width':'100%',
+                                        'border': 'none',
+                                        'font-size': '14px',
+                                    });
+
+                                    $('#KRAtable .form-group label').css({
+                                        'position': 'absolute',
+                                        'font-size':'12px',
+                                        'padding': '10 0px'
+                                    });
+
+                                    $('#KRAtable .form-group div').css({
+                                        'position': 'absolute',
+                                        'font-size':'12px',
+                                        'padding': '2px 4px',
+                                        'right':'10px',
+                                        'background-color': 'rgba(224, 230, 230, 0.115)'
+                                    });
+                                } else if (data.status === 'no_data') {
+                                    Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'No Data',
+                                                    text: 'No KRA created'
+                                                });
+                                    $('#KRAtable').empty();
+                                } else if (data.status === 'invalid_request') {
+                                                Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'Invalid request',
+                                                    text: 'Please try again later.'
+                                                });
+                                } else {
+                                                Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'Unexpected error',
+                                                    text: 'Please try again later.'
+                                                });
+                                }
+                            } catch (error) {
+                                console.log(error);
+                                Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid response',
+                                            text: 'Please try again later.'
+                                        });
+                            }
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Server error',
+                                text: 'Please try again later',
+                            });
+                        }
+                    });
+                }
+			}
+		});
+    });
+
+    
+    $('#table_instruments tbody').on('click', '.editLevelPoint', function() {
+        Swal.fire({
+			html: `<div id="pointDiv" ></div>`,
+			showCancelButton: false,
+			confirmButtonColor: "#3085d6",
+			cancelButtonColor: "#d33",
+			confirmButtonText: "Close",
+			didOpen: () => {
+				
+                const formsData = new FormData();
+                formsData.append('button', 'get_level_points');
+                formsData.append('instrument_id', $(this).data('id'));
+                $.ajax({
+                    url: '/ajax_admin_get_level_points', 
+                    method: 'POST',
+                    data: formsData,
+                    processData: false, 
+                    contentType: false,
+                    success: function(response) {
+                        try {
+                            const data = JSON.parse(response); 
+                            console.log(data);
+
+                            if (data.status === 'success') {
+                                $.each(data.raw_data, function(index, row) {
+                                    $('#pointDiv').append(`
+                                        <div data-id='${row.criteria_id}' class='mb-3 d-flex justify-content-between align-items-end' class='mainLevelContainer' >
+                                            <div class='mb-1' >
+                                                <label>${row.criteria_level}</label>
+                                            </div>
+                                            <div>
+                                                <label>Min</label>
+                                                <input type='' class='levelPoint min form-control form-control-sm' value='${row.criteria_minpoint}' />
+                                            </div>
+                                            <div>
+                                                <label>Max</label>
+                                                <input type='' class='levelPoint max form-control form-control-sm' value='${row.criteria_maxpoint}' />
+                                            </div>
+                                        </div>
+                                    `);
+                                });
+
+                                $(document).on('change', '.levelPoint', function () {
+                                    const container = $(this).closest('div[data-id]');
+                                    const criteriaId = container.data('id');
+                                    const minVal = container.find('.min').val();
+                                    const maxVal = container.find('.max').val();
+
+                                    const formsData = new FormData();
+                                    formsData.append('button', 'save_point_level');
+                                    formsData.append('criteriaId', criteriaId);
+                                    formsData.append('minVal', minVal);
+                                    formsData.append('maxVal', maxVal);
+                                    $.ajax({
+                                        url: '/ajax_admin_save_point_level', 
+                                        method: 'POST',
+                                        data: formsData,
+                                        processData: false, 
+                                        contentType: false,
+                                        success: function(response) {
+                                            try {
+                                                const data = JSON.parse(response); 
+                                                console.log(data);
+
+                                                if (data.status === 'success') {
+                                                    
+                                                } else if (data.status === 'failed') {
+                                                    Swal.showValidationMessage('Failed to save data');
+                                                } else if (data.status === 'invalid_request') {
+                                                    Swal.fire({
+                                                        icon: 'error',
+                                                        title: 'Invalid request',
+                                                        text: 'Please try again later.'
+                                                    });
+                                                } else {
+                                                    Swal.fire({
+                                                        icon: 'error',
+                                                        title: 'Unexpected error',
+                                                        text: 'Please try again later.'
+                                                    });
+                                                }
+                                            } catch (error) {
+                                                console.log(error);
+                                                Swal.fire({
+                                                            icon: 'error',
+                                                            title: 'Invalid response',
+                                                            text: 'Please try again later.'
+                                                        });
+                                            }
+                                        },
+                                        error: function() {
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Server error',
+                                                text: 'Please try again later',
+                                            });
+                                        }
+                                    });
+
+                                });
+
+                            } else if (data.status === 'no_data') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'No data',
+                                    text: 'Please try again later.'
+                                });
+                            } else if (data.status === 'invalid_request') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid request',
+                                    text: 'Please try again later.'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Unexpected error',
+                                    text: 'Please try again later.'
+                                });
+                            }
+                        } catch (error) {
+                            console.log(error);
+                            Swal.fire({
+                                        icon: 'error',
+                                        title: 'Invalid response',
+                                        text: 'Please try again later.'
+                                    });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Server error',
+                            text: 'Please try again later',
+                        });
+                    }
+                });
+			}
+		});
+    })
+
+
+
+
+
+
+    $('#table_instruments tbody').on('click', '.deleteInstrument', function() {
+    Swal.fire({
+        title: 'Are you sure?',
+        html: "Do you want to <b class='text-danger' >delete</b> this instrument? <br><b>" + $(this).data('jc') + "</b>",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, cancel!',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formsData = new FormData();
+            formsData.append('button', 'delete_instrument');
+            formsData.append('instrument_id', $(this).data('id'));
+            $.ajax({
+                url: '/ajax_admin_delete_instrument', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Instrument deleted successfully.'
+                            }).then(() => {
+                                loadInstruments(); 
+                            });
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed to delete instrument',
+                                text: 'Please try again later.'
+                            });
+                        } else if (data.status === 'invalid_request') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid request',
+                                text: 'Please try again later.'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Unexpected error',
+                                text: 'Please try again later.'
+                            });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+    });
+});
+
+
+
+    
+$('#table_instruments tbody').on('click', '.publishInstrument', function() {
+    Swal.fire({
+        title: 'Are you sure?',
+        html: "Do you want to <b class='text-success' >publish</b> this instrument? <br><b>" + $(this).data('jc') + "</b>",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, publish it!',
+        cancelButtonText: 'No, cancel!',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const formsData = new FormData();
+            formsData.append('button', 'publish_instrument');
+            formsData.append('instrument_id', $(this).data('id'));
+            $.ajax({
+                url: '/ajax_admin_publish_instrument', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Instrument published successfully.'
+                            }).then(() => {
+                                loadInstruments(); 
+                            });
+                        } else if (data.status === 'failed') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Failed to publish instrument',
+                                text: 'Please try again later.'
+                            });
+                        } else if (data.status === 'invalid_request') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid request',
+                                text: 'Please try again later.'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Unexpected error',
+                                text: 'Please try again later.'
+                            });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+    });
+});
+
+
+
+$('#table_instruments tbody').on('click', '.editInstrument', function() {
+    var form = $('<form>', {
+        'method': 'POST',
+        'action': 'admin-edit-instruments'  
+    });
+    
+    form.append($('<input>', {
+        'type': 'hidden',
+        'name': 'data_id',
+        'value': $(this).attr('data-id') 
+    }));
+    
+    form.append($('<input>', {
+        'type': 'hidden',
+        'name': 'data_jc',
+        'value': $(this).attr('data-jc') 
+    }));
+    
+    $('body').append(form);
+    form.submit();
+});
+
+
+
+$('#table_instruments tbody').on('click', '.viewResult', function() {
+    var form = $('<form>', {
+        'method': 'POST',
+        'action': 'admin-view-results'  
+    });
+    
+    form.append($('<input>', {
+        'type': 'hidden',
+        'name': 'data_id',
+        'value': $(this).attr('data-id') 
+    }));
+    
+    form.append($('<input>', {
+        'type': 'hidden',
+        'name': 'data_jc',
+        'value': $(this).attr('data-jc') 
+    }));
+    
+    $('body').append(form);
+    form.submit();
+});
+
+
+
+
+
+
+
+
+
+
+
+    loadInstruments();
+    function loadInstruments() {
+        const formsData = new FormData();
+        formsData.append('button', 'get_instruments');
+        $.ajax({
+            url: '/ajax_admin_get_instruments', 
+            method: 'POST',
+            data: formsData,
+            processData: false, 
+            contentType: false,
+            success: function(response) {
+                try {
+                    const data = JSON.parse(response); 
+                    console.log(data);
+
+                    if (data.status === 'success') {
+                        $('#table_instruments tbody').empty();
+                        $.each(data.raw_data, function(index, row) {
+                            
+                            let instrument_status = `<b class='text-warning' >Draft</b>`;
+                            let btn_status = '';
+                            if (row.instrument_status === 'Published') {
+                                instrument_status = `<b class='text-success' >Published</b>`;
+                                btn_status = 'disabled';
+                            }
+
+                            $('#table_instruments tbody').append(`
+                                <tr>
+                                    <td class="px-0 text-start">${ index + 1 }</td>
+                                    <td class="px-0">Joint Circular No. ${ row.instrument_jc }</td>
+                                    <td class="px-0">${ row.instrument_subject }</td>
+                                    <td class="px-0 ps-1 pe-1">${ instrument_status }</td>
+                                    <td class="px-0">
+                                        <button data-id='${ row.instrument_id }' data-jc='Joint Circular No. ${ row.instrument_jc }' title='view' class="viewInstrument btn btn-primary btn-sm" ><span class='fas fa-eye' ></span></button>
+                                        <button ${ btn_status } data-id='${ row.instrument_id }' data-jc='Joint Circular No. ${ row.instrument_jc }' title='edit level point' class="editLevelPoint btn btn-secondary btn-sm" ><span class='fas fa-info-circle' ></span></button>
+                                        <button ${ btn_status } data-id='${ row.instrument_id }' data-jc='Joint Circular No. ${ row.instrument_jc }' title='edit' class="editInstrument btn btn-warning btn-sm" ><span class='fas fa-edit' ></span></button>
+                                        <button ${ btn_status } data-id='${ row.instrument_id }' data-jc='Joint Circular No. ${ row.instrument_jc }' title='publish' class="publishInstrument btn btn-success btn-sm" ><span class='fas fa-globe' ></span></button>
+                                        <button ${ btn_status } data-id='${ row.instrument_id }' data-jc='Joint Circular No. ${ row.instrument_jc }' title='delete' class="deleteInstrument btn btn-danger btn-sm" ><span class='fas fa-trash-alt' ></span></button>
+                                        <button data-id='${ row.instrument_id }' data-jc='Joint Circular No. ${ row.instrument_jc }' title='result' class="viewResult btn btn-primary btn-sm" ><span class='far fa-chart-bar' ></span></button>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                        new DataTable('#table_instruments');
+                    } else if (data.status === 'no_data') {
+                        Swal.fire({
+                                        icon: 'error',
+                                        title: 'No data found',
+                                        text: 'No instruments available at the moment.'
+                                    });
+                        $('#table_instruments tbody').empty();
+                    } else if (data.status === 'invalid_request') {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Invalid request',
+                                        text: 'Please try again later.'
+                                    });
+                    } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Unexpected error',
+                                        text: 'Please try again later.'
+                                    });
+                    }
+                } catch (error) {
+                    console.log(error);
+                    Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid response',
+                                text: 'Please try again later.'
+                            });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server error',
+                    text: 'Please try again later',
+                });
+            }
+        });
+    }
+
+
+
+
+
+
+
+
+
+
+    
+});
+</script>
+{% include 'admin/tp_admin_footer.html' %}			

@@ -1,0 +1,128 @@
+{% include 'admin/tp_admin_header.html' %}
+<div class="page-breadcrumb">
+    <div class='d-flex justify-content-between align-items-center'>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="admin-dashboard">Admin</a></li>
+            <li class="breadcrumb-item"><a href="admin-instruments">Results</a></li>       
+            <li class="breadcrumb-item active">{{ dataJC }}</li>       
+        </ol>
+        <input type="hidden" id="dataID" value="{{ dataID }}">
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body" >
+                <table id="tableResults" class="table mb-0 text-nowrap varient-table align-middle fs-3">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>SUC</th>
+                            <th>Region</th>
+                            <th>Typology</th>
+                            <th>Level</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+    $(document).ready(function() {
+        getResult();
+        function getResult(){
+            const formsData = new FormData();
+            formsData.append('button', 'get_results');
+            formsData.append('instrument_id', $('#dataID').val());
+            $.ajax({
+                url: '/ajax_admin_get_results', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            $('#tableResults tbody').empty();
+                            $.each(data.raw_data, function(index, row) {
+                                let sucLogo = row.sucLogo ? row.sucLogo : 'logo.png';
+                                $('#tableResults tbody').append(`
+                                    <tr>
+                                        <td class="text-start">${ index + 1 }</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="assets/images/logo/${sucLogo}" class="rounded-circle" width="25" alt="cpsu" />
+                                                <div class="ms-3">
+                                                    ${ row.sucName }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>${ row.sucRegion }</td>
+                                        <td>${ row.sucTypology }</td>
+                                        <td>${ row.levelName }</td>
+                                        <td>${ row.resultPoint }</td>
+                                    </tr>
+                                `);
+                            });
+                        } else if (data.status === 'no_data') {
+                            Swal.fire({
+                                            icon: 'error',
+                                            title: 'Failed',
+                                            text: 'No data'
+                                        });
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+    });     
+</script>
+
+
+
+
+
+
+{% include 'admin/tp_admin_footer.html' %}			

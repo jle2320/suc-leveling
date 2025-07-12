@@ -1,0 +1,118 @@
+{% include 'admin/tp_admin_header.html' %}
+<div class="page-breadcrumb">
+    <div class='d-flex justify-content-between align-items-center'>
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="admin-dashboard">Admin</a></li>
+            <li class="breadcrumb-item active">University / Colleges</li>       
+        </ol>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+            
+                <div class="table-responsive">
+                    <table class="table mb-0 text-nowrap varient-table align-middle fs-3" id="table_university_colleges">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="px-0 text-muted text-start">No.</th>
+                                <th scope="col" class="px-0 text-muted text-start">Region</th>
+                                <th scope="col" class="px-0 text-muted text-start">State University / Colleges</th>
+                                <th scope="col" class="px-0 text-muted text-start">Typology</th>
+                            </tr>
+                        </thead>
+
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+$(document).ready(function () {
+    
+    const formsData = new FormData();
+    formsData.append('button', 'get_university_colleges');
+    $.ajax({
+        url: '/ajax_admin_get_university_colleges', 
+        method: 'POST',
+        data: formsData,
+        processData: false, 
+        contentType: false,
+        success: function(response) {
+            try {
+                const data = JSON.parse(response); 
+                console.log(data);
+
+                if (data.status === 'success') {
+                    $('#table_university_colleges tbody').empty();
+                    $.each(data.raw_data, function(index, row) {
+                        let suc_logo = row.suc_logo ? row.suc_logo : 'logo.png';
+						$('#table_university_colleges tbody').append(`
+							<tr>
+                                <td class="px-0 text-start">${ index + 1 }</td>
+                                <td class="px-0">${ row.suc_region }</td>
+                                <td class="px-0">
+                                    <div class="d-flex align-items-center">
+                                        <img src="assets/images/logo/${suc_logo}" class="rounded-circle" width="25" alt="cpsu" />
+                                        <div class="ms-3">
+                                            ${ row.suc_name }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-0">${ row.suc_typology }</td>
+                            </tr>
+						`);
+					});
+                    new DataTable('#table_university_colleges');
+                } else if (data.status === 'no_data') {
+                    Swal.fire({
+                                    icon: 'error',
+                                    title: 'No data found',
+                                    text: 'No university or college data available.'
+                                });
+                } else if (data.status === 'invalid_request') {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid request',
+                                    text: 'Please try again later.'
+                                });
+                } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Unexpected error',
+                                    text: 'Please try again later.'
+                                });
+                }
+            } catch (error) {
+                console.log(error);
+                Swal.fire({
+                            icon: 'error',
+                            title: 'Invalid response',
+                            text: 'Please try again later.'
+                        });
+            }
+        },
+        error: function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Server error',
+                text: 'Please try again later',
+            });
+        }
+    });
+});
+</script>
+{% include 'admin/tp_admin_footer.html' %}			
