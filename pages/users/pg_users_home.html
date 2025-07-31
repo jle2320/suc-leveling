@@ -1,2 +1,251 @@
-<a href="admin">Admin</a><br>
-<a href="sucs-login">SUC</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ titleBar }}</title>
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='images/logo/logo.png') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='fonts/fontawesome/css/all.min.css') }}" />
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap.main.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/sweetalert2.min.css') }}" rel="stylesheet">
+    <link href="https://cdn.datatables.net/2.3.2/css/dataTables.bootstrap5.css" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/jquery-3.6.0.min.js') }}"></script>
+</head>
+
+<body class="index-page">
+
+  <header id="header" class="header d-flex align-items-center fixed-top">
+    <div class="container-fluid container-xl position-relative d-flex align-items-center">
+
+      <a href="" class="logo d-flex align-items-center me-auto">
+        <img src="{{ url_for('static', filename='images/logo/brandlogo.png') }}" alt="">
+      </a>
+
+      <nav id="navmenu" class="navmenu">
+        <ul>
+          <li><a href="#hero" class="active text-decoration-none">Home<br></a></li>
+          <li><a href="#about" class="text-decoration-none">About</a></li>
+		  <li class="dropdown" >
+			<a href="#" id="dropdownMenuButton1" data-bs-toggle="dropdown" class="text-decoration-none " >
+				<span>Joint Circular</span> <i class="bi bi-chevron-down toggle-dropdown"></i>
+			</a>
+            <ul class="dropdown-menu" id="listing-dropdown" aria-labelledby="dropdownMenuButton1"></ul>
+          </li>
+        </ul>
+        <i class="mobile-nav-toggle d-xl-none bi bi-list"></i>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero section">
+
+		<div class="container">
+			<table id="tableResults" class="table mb-0 text-nowrap varient-table align-middle">
+				<thead>
+					<tr>
+						<th>Rank</th>
+						<th>SUC</th>
+						<th>Region</th>
+						<th>Typology</th>
+						<th>Level</th>
+						<th>Points</th>
+					</tr>
+				</thead>
+				<tbody></tbody>
+			</table>
+		</div>
+
+    </section><!-- /Hero Section -->
+
+    
+  </main>
+
+  
+
+  <script>
+    $(document).ready(function() {
+        getResult();
+        function getResult(){
+			let id = getUrlParameter('id');
+            const formsData = new FormData();
+            formsData.append('button', 'get_results');
+            formsData.append('instrument_id', id);
+            $.ajax({
+                url: '/ajax_admin_get_results', 
+                method: 'POST',
+                data: formsData,
+                processData: false, 
+                contentType: false,
+                success: function(response) {
+                    try {
+                        const data = JSON.parse(response); 
+                        console.log(data);
+
+                        if (data.status === 'success') {
+                            $('#tableResults tbody').empty();
+                            $.each(data.raw_data, function(index, row) {
+                                let sucLogo = row.sucLogo ? row.sucLogo : 'logo.png';
+                                $('#tableResults tbody').append(`
+                                    <tr>
+                                        <td class="text-start">${ index + 1 }</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <img src="assets/images/logo/${sucLogo}" class="rounded-circle" width="25" alt="cpsu" />
+                                                <div class="ms-3">
+                                                    ${ row.sucName }
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>${ row.sucRegion }</td>
+                                        <td>${ row.sucTypology }</td>
+                                        <td>${ row.levelName }</td>
+                                        <td>${ row.resultPoint }</td>
+                                    </tr>
+                                `);
+                            });
+							
+							
+                        } else if (data.status === 'no_data') {
+                            $('#tableResults tbody').append(`
+                                    <tr>
+                                        <td class="text-start" colspan="6" >No results</td>
+                                    </tr>
+                                `);
+                        } else if (data.status === 'invalid_request') {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Invalid request',
+                                            text: 'Please try again later.'
+                                        });
+                        } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Unexpected error',
+                                            text: 'Please try again later.'
+                                        });
+                        }
+                    } catch (error) {
+                        console.log(error);
+                        Swal.fire({
+                                    icon: 'error',
+                                    title: 'Invalid response',
+                                    text: 'Please try again later.'
+                                });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Server error',
+                        text: 'Please try again later',
+                    });
+                }
+            });
+        }
+    });  
+
+
+
+
+
+
+
+function getUrlParameter(name) {
+    name = name.replace(/[\[\]]/g, "\\$&");
+    let regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)");
+    let results = regex.exec(window.location.href);
+    if (!results || !results[2]) return null;
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+
+
+
+
+
+loadInstruments();
+    function loadInstruments() {
+		let id = getUrlParameter('id');
+		
+
+        const formsData = new FormData();
+        formsData.append('button', 'get_instruments');
+        $.ajax({
+            url: '/ajax_admin_get_instruments', 
+            method: 'POST',
+            data: formsData,
+            processData: false, 
+            contentType: false,
+            success: function(response) {
+                try {
+                    const data = JSON.parse(response); 
+                    console.log(data);
+
+                    if (data.status === 'success') {
+                        $('#listing-dropdown').empty();
+						let x = '';
+                        $.each(data.raw_data, function(index, row) {
+							$('#listing-dropdown').append(`
+                                <li><a class="dropdown-item" href="?id=${ row.instrument_id }">Joint Circular No. ${ row.instrument_jc }</a></li>
+                            `);
+							x = row.instrument_id;
+                        });
+                        new DataTable('#table_instruments');
+						if(id == null){
+							window.location = 'university-performance-evaluation?id=' + x;
+						}
+                    } else if (data.status === 'no_data') {
+                        Swal.fire({
+                                        icon: 'wa',
+                                        title: 'No data found',
+                                        text: 'No instruments available at the moment.'
+                                    });
+                        $('#table_instruments tbody').empty();
+                    } else if (data.status === 'invalid_request') {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Invalid request',
+                                        text: 'Please try again later.'
+                                    });
+                    } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Unexpected error',
+                                        text: 'Please try again later.'
+                                    });
+                    }
+                } catch (error) {
+                    console.log(error);
+                    Swal.fire({
+                                icon: 'error',
+                                title: 'Invalid response',
+                                text: 'Please try again later.'
+                            });
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server error',
+                    text: 'Please try again later',
+                });
+            }
+        });
+    }   
+</script>
+
+  <script src="{{ url_for('static', filename='js/app.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='js/sidebarmenu.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sweetalert2.js') }}"></script>
+
+    <script src="https://cdn.datatables.net/2.3.2/js/dataTables.js"></script>
+    <script src="https://cdn.datatables.net/2.3.2/js/dataTables.bootstrap5.js"></script>
+
+</body>
+
+</html>
